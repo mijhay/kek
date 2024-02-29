@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract AccessControl {
+    struct AccessPolicy {
+        address resourceOwner;
+        mapping(bytes32 => bool) userPermissions;
+    }
+
+    mapping(address => AccessPolicy) public resourceAccess;
+
+    event PermissionGranted(address indexed resourceOwner, address indexed user, bytes32 permission);
+    event PermissionRevoked(address indexed resourceOwner, address indexed user, bytes32 permission);
+
+    modifier onlyResourceOwner(address _resourceOwner) {
+        require(msg.sender == _resourceOwner, "Only resource owner can modify permissions");
+        _;
+    }
+
+    function grantPermission(address _user, bytes32 _permission) external onlyResourceOwner(msg.sender) {
+        resourceAccess[msg.sender].userPermissions[keccak256(abi.encodePacked(_user, _permission))] = true;
+        emit PermissionGranted(msg.sender, _user, _permission);
+    }
+
+    function revokePermission(address _user, bytes32 _permission) external onlyResourceOwner(msg.sender) {
+        delete resourceAccess[msg.sender].userPermissions[keccak256(abi.encodePacked(_user, _permission))];
+        emit PermissionRevoked(msg.sender, _user, _permission);
+    }
+
+    function checkPermission(address _user, bytes32 _permission) external view returns (bool) {
+        return resourceAccess[msg.sender].userPermissions[keccak256(abi.encodePacked(_user, _permission))];
+    }
+}
